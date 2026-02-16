@@ -114,3 +114,26 @@ Run locally:
 pip install detect-secrets==1.5.0
 detect-secrets scan --baseline .secrets.baseline
 ```
+
+### Auditing the Secrets Baseline
+
+The `.secrets.baseline` file contains **2,192 lines** of detected potential secrets.
+Most are false positives (test fixtures, documentation examples), but they must be
+reviewed periodically to ensure no real secrets slip through.
+
+**How to audit:**
+
+```bash
+# Interactive audit — review each detection one by one
+detect-secrets audit .secrets.baseline
+
+# For each detection, you'll be asked:
+#  [y] = real secret → must be rotated and removed from code
+#  [n] = false positive → mark as safe
+#  [s] = skip for now
+
+# After auditing, update the baseline
+detect-secrets scan --baseline .secrets.baseline --update
+```
+
+**Recommended schedule:** Audit the baseline before each release or at least monthly.

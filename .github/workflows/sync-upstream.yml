@@ -1,0 +1,54 @@
+# Upstream Sync Workflow
+# Automatically syncs this fork with the upstream openclaw/openclaw repository.
+# Runs weekly and can be triggered manually.
+
+name: Sync Upstream
+
+on:
+  schedule:
+    # Run every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to sync"
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/openclaw/openclaw.git || true
+          git fetch upstream
+
+      - name: Merge upstream changes
+        run: |
+          BRANCH="${{ github.event.inputs.branch || 'main' }}"
+          git checkout "$BRANCH"
+          git merge "upstream/$BRANCH" --no-edit --allow-unrelated-histories || {
+            echo "::warning::Merge conflict detected. Manual resolution required."
+            git merge --abort
+            exit 1
+          }
+
+      - name: Push changes
+        run: |
+          BRANCH="${{ github.event.inputs.branch || 'main' }}"
+          git push origin "$BRANCH"

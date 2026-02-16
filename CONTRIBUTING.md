@@ -54,6 +54,43 @@ Welcome to the lobster tank! 🦞
 - Keep PRs focused (one thing per PR)
 - Describe what & why
 
+## Commit Signing (Recommended) 🔐
+
+To ensure integrity and authenticity of contributions, we **strongly recommend** signing your commits with GPG or SSH keys.
+
+### Setup GPG Signing
+
+```bash
+# Generate a GPG key (if you don't have one)
+gpg --full-generate-key
+
+# List your GPG keys
+gpg --list-secret-keys --keyid-format=long
+
+# Configure git to use your key
+git config --global user.signingkey YOUR_KEY_ID
+git config --global commit.gpgsign true
+
+# Add your GPG public key to GitHub:
+# Settings → SSH and GPG keys → New GPG key
+gpg --armor --export YOUR_KEY_ID
+```
+
+### Setup SSH Signing (Simpler Alternative)
+
+```bash
+# Use your existing SSH key for signing
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true
+
+# Add the same key to GitHub as a "Signing Key":
+# Settings → SSH and GPG keys → New SSH key → Key type: Signing Key
+```
+
+> **Note for maintainers:** Consider enabling "Require signed commits" in branch protection rules for the `main` branch.
+
+
 ## Control UI Decorators
 
 The Control UI uses Lit with **legacy** decorators (current Rollup parsing does not support

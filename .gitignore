@@ -86,3 +86,11 @@ USER.md
 !.agent/workflows/
 /local/
 package-lock.json
+
+# ──────────────────────────────────────────────────────────────
+# Security: Private infrastructure configs (NEVER COMMIT)
+# ──────────────────────────────────────────────────────────────
+fly.private.toml
+*.private.toml
+.env.production
+.env.local

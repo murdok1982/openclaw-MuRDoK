@@ -1,3 +1,14 @@
+# ──────────────────────────────────────────────────────────────
+# OpenClaw Docker Compose — Hardened Configuration
+# ──────────────────────────────────────────────────────────────
+# SECURITY NOTES:
+# - NEVER commit a .env file with real secrets to git.
+# - CLAUDE_* variables are OPTIONAL. Only set them if you use
+#   Claude AI OAuth (not API key auth). Remove them if unused.
+# - Always use strong, random values for OPENCLAW_GATEWAY_TOKEN.
+#   Generate with: openssl rand -hex 32
+# ──────────────────────────────────────────────────────────────
+
 services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
@@ -5,27 +16,43 @@ services:
       HOME: /home/node
       TERM: xterm-256color
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
+      # ──────────────────────────────────────────────────────────
+      # OPTIONAL: Claude OAuth session keys.
+      # Only required if you use Claude web session auth.
+      # If using API keys instead, REMOVE these lines entirely.
+      # ⚠️  NEVER hardcode values here — use a .env file.
+      # ──────────────────────────────────────────────────────────
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
     volumes:
-      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_CONFIG_DIR:-./config}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./workspace}:/home/node/.openclaw/workspace
     ports:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
     init: true
     restart: unless-stopped
-    command:
-      [
-        "node",
-        "dist/index.js",
-        "gateway",
-        "--bind",
-        "${OPENCLAW_GATEWAY_BIND:-lan}",
-        "--port",
-        "18789",
-      ]
+    # ── Improvement #9: Health check ──────────────────────────
+    healthcheck:
+      test: [ "CMD", "node", "-e", "const http=require('http');const r=http.get('http://127.0.0.1:18789/health',(res)=>{process.exit(res.statusCode===200?0:1)});r.on('error',()=>process.exit(1));r.end()" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    # ── Improvement #10: Isolated network ─────────────────────
+    networks:
+      - openclaw-internal
+    # ── Improvement #11: Resource limits ──────────────────────
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+    command: [ "node", "dist/index.js", "gateway", "--bind", "${OPENCLAW_GATEWAY_BIND:-lan}", "--port", "18789" ]
 
   openclaw-cli:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
@@ -34,13 +61,27 @@ services:
       TERM: xterm-256color
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       BROWSER: echo
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
+      # These are OPTIONAL — see security notes above
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
     volumes:
-      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ${OPENCLAW_CONFIG_DIR:-./config}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-./workspace}:/home/node/.openclaw/workspace
     stdin_open: true
     tty: true
     init: true
-    entrypoint: ["node", "dist/index.js"]
+    networks:
+      - openclaw-internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    entrypoint: [ "node", "dist/index.js" ]
+
+# ── Improvement #10: Internal network ─────────────────────────
+networks:
+  openclaw-internal:
+    driver: bridge
+    internal: false # Set to true if gateway should NOT access internet

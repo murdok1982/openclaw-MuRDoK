@@ -1,4 +1,4 @@
-# 🦞 OpenClaw — Personal AI Assistant
+# 🦞 OpenClaw — Personal AI Assistant (MuRDoK Fork)
 
 <p align="center">
     <picture>
@@ -17,6 +17,32 @@
   <a href="https://discord.gg/clawd"><img src="https://img.shields.io/discord/1456350064065904867?label=Discord&logo=discord&logoColor=white&color=5865F2&style=for-the-badge" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
+
+---
+
+## 🔐 Security Hardening Applied (MuRDoK Fork)
+
+> This is a **hardened fork** of [openclaw/openclaw](https://github.com/openclaw/openclaw) with **11 security and quality improvements** applied. All upstream features remain intact.
+
+### Changes Applied
+
+| # | Improvement | File(s) | Priority |
+|---|---|---|---|
+| 1 | **Pinned Bun version** — replaced `curl \| bash` with version-pinned install to prevent supply-chain attacks | `Dockerfile` | 🔴 Alta |
+| 2 | **Removed `fly.private.toml`** from git tracking; added to `.gitignore` to prevent infrastructure exposure | `.gitignore` | 🔴 Alta |
+| 3 | **Documented `CLAUDE_*` vars** as optional with security warnings and safe defaults | `docker-compose.yml` | 🔴 Alta |
+| 4 | **Commit signing guide** — GPG and SSH signing instructions for contributors | `CONTRIBUTING.md` | 🟡 Media |
+| 5 | **Secrets baseline audit guide** — step-by-step instructions for auditing `detect-secrets` baseline | `SECURITY.md` | 🟡 Media |
+| 6 | **Fork documentation** — this section! Explains purpose and changes of this fork | `README.md` | 🟡 Media |
+| 7 | **Fork changelog** — tracks all fork-specific changes separately from upstream | `FORK_CHANGELOG.md` | 🟡 Media |
+| 8 | **Upstream sync workflow** — automated weekly sync with upstream via GitHub Actions | `.github/workflows/sync-upstream.yml` | 🟡 Media |
+| 9 | **Docker health checks** — automated container monitoring for orchestration platforms | `Dockerfile`, `docker-compose.yml` | 🟢 Baja |
+| 10 | **Docker network isolation** — internal bridge network for service isolation | `docker-compose.yml` | 🟢 Baja |
+| 11 | **Docker resource limits** — memory and CPU limits to prevent resource exhaustion attacks | `docker-compose.yml` | 🟢 Baja |
+
+> 📝 For the full changelog, see [`FORK_CHANGELOG.md`](FORK_CHANGELOG.md).
+
+---
 
 **OpenClaw** is a _personal AI assistant_ you run on your own devices.
 It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.

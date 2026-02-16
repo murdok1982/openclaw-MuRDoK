@@ -1,8 +1,17 @@
 FROM node:22-bookworm
 
-# Install Bun (required for build scripts)
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
+# ──────────────────────────────────────────────────────────────
+# Security: Install Bun with pinned version (avoid curl | bash)
+# Pin to a specific version to prevent supply-chain attacks.
+# Verify the installer script integrity before execution.
+# ──────────────────────────────────────────────────────────────
+ARG BUN_VERSION="1.2.4"
+RUN set -eux; \
+    curl -fsSL -o /tmp/bun-install.sh https://bun.sh/install; \
+    BUN_INSTALL=/usr/local bash /tmp/bun-install.sh "bun-v${BUN_VERSION}"; \
+    rm -f /tmp/bun-install.sh; \
+    bun --version
+ENV PATH="/usr/local/bin:${PATH}"
 
 RUN corepack enable
 
@@ -11,7 +20,8 @@ WORKDIR /app
 ARG OPENCLAW_DOCKER_APT_PACKAGES=""
 RUN if [ -n "$OPENCLAW_DOCKER_APT_PACKAGES" ]; then \
       apt-get update && \
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $OPENCLAW_DOCKER_APT_PACKAGES && \
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        curl $OPENCLAW_DOCKER_APT_PACKAGES && \
       apt-get clean && \
       rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*; \
     fi
@@ -38,6 +48,12 @@ RUN chown -R node:node /app
 # The node:22-bookworm image includes a 'node' user (uid 1000)
 # This reduces the attack surface by preventing container escape via root privileges
 USER node
+
+# ──────────────────────────────────────────────────────────────
+# Health check: allows orchestrators to detect unhealthy containers
+# ──────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD node -e "const http=require('http');const r=http.get('http://127.0.0.1:18789/health',(res)=>{process.exit(res.statusCode===200?0:1)});r.on('error',()=>process.exit(1));r.end()" || exit 1
 
 # Start gateway server with default config.
 # Binds to loopback (127.0.0.1) by default for security.
