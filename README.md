@@ -48,29 +48,37 @@
 
 ```mermaid
 graph TD
-    User([👤 Usuario / Desarrollador])
+    User(["👤 Usuario / Desarrollador"])
     
-    subgraph Canales de Comunicación
-        WS[WhatsApp / Telegram]
-        DC[Discord / Slack]
-        SIG[Signal / Teams]
+    subgraph Canales ["Canales de Comunicación"]
+        WS["WhatsApp / Telegram"]
+        DC["Discord / Slack"]
+        SIG["Signal / Teams"]
     end
 
-    subgraph Gateway Central - MuRDoK Fork 🛡️
-        GW[OpenClaw Gateway<br/>Control Plane WS]
-        SH[Security Hardening<br/>Límites & Aislamiento]
+    subgraph Gateway ["Gateway Central - MuRDoK Fork 🛡️"]
+        GW["OpenClaw Gateway<br/>Control Plane WS"]
+        SH["Security Hardening<br/>Límites & Aislamiento"]
         GW --- SH
     end
 
-    subgraph Agentes y Nodos Locales
-        PA[Pi Agent Runtime RPC]
-        MN[macOS / Linux CLI]
-        IN[iOS / Android Nodes]
+    subgraph Nodos ["Agentes y Nodos Locales"]
+        PA["Pi Agent Runtime RPC"]
+        MN["macOS / Linux CLI"]
+        IN["iOS / Android Nodes"]
     end
 
-    User -->|Interactúa| Canales de Comunicación
-    Canales de Comunicación -->|Mensajes / Comandos| GW
-    GW -->|Enruta Sesiones| Agentes y Nodos Locales
+    User -->|Interactúa| WS
+    User -->|Interactúa| DC
+    User -->|Interactúa| SIG
+    
+    WS -->|Mensajes / Comandos| GW
+    DC -->|Mensajes / Comandos| GW
+    SIG -->|Mensajes / Comandos| GW
+    
+    GW -->|Enruta Sesiones| PA
+    GW -->|Enruta Sesiones| MN
+    GW -->|Enruta Sesiones| IN
 ```
 
 ---
