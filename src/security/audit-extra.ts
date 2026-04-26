@@ -13,6 +13,7 @@ export {
   collectExposureMatrixFindings,
   collectGatewayHttpSessionKeyOverrideFindings,
   collectHooksHardeningFindings,
+  collectMemoryDbFindings,
   collectMinimalProfileOverrideFindings,
   collectModelHygieneFindings,
   collectNodeDenyCommandPatternFindings,

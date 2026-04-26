@@ -87,6 +87,16 @@ function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+function applySecurityHeaders(res: ServerResponse): void {
+  res.setHeader("X-Content-Type-Options", "nosniff")
+  res.setHeader("X-Frame-Options", "DENY")
+  res.setHeader("Referrer-Policy", "no-referrer")
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-ancestors 'none'",
+  )
+}
+
 function isCanvasPath(pathname: string): boolean {
   return (
     pathname === A2UI_PATH ||
@@ -478,6 +488,8 @@ export function createGatewayHttpServer(opts: {
     if (String(req.headers.upgrade ?? "").toLowerCase() === "websocket") {
       return;
     }
+
+    applySecurityHeaders(res)
 
     try {
       const configSnapshot = loadConfig();

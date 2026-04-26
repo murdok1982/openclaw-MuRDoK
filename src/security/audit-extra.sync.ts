@@ -948,6 +948,29 @@ export function collectSmallModelRiskFindings(params: {
   return findings;
 }
 
+export function collectMemoryDbFindings(
+  cfg: OpenClawConfig,
+  stateDir: string,
+): SecurityAuditFinding[] {
+  const memBackend = cfg.memory?.backend ?? "builtin"
+  if (memBackend !== "builtin") {
+    return []
+  }
+  return [
+    {
+      checkId: "memory.db_unencrypted",
+      severity: "info",
+      title: "Memory database stored in plaintext",
+      detail:
+        `The builtin memory backend stores conversation embeddings and content in ${stateDir}/workspace/memory.db without encryption. ` +
+        "If an attacker gains filesystem read access, all stored memories are exposed.",
+      remediation:
+        "Restrict state directory permissions (chmod 700 ~/.openclaw). " +
+        "For sensitive deployments, consider disabling memory or using an external backend.",
+    },
+  ]
+}
+
 export function collectExposureMatrixFindings(cfg: OpenClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   const openGroups = listGroupPolicyOpen(cfg);

@@ -17,6 +17,11 @@
  */
 
 import { isLoopbackAddress } from "./net.js";
+import {
+  clearPersistedLockout,
+  loadPersistedLockouts,
+  persistLockout,
+} from "../infra/rate-limit-store.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -87,7 +92,13 @@ export function createAuthRateLimiter(config?: RateLimitConfig): AuthRateLimiter
   const lockoutMs = config?.lockoutMs ?? DEFAULT_LOCKOUT_MS;
   const exemptLoopback = config?.exemptLoopback ?? true;
 
-  const entries = new Map<string, RateLimitEntry>();
+  const entries = new Map<string, RateLimitEntry>()
+
+  // Load active lockouts that survived a previous restart
+  const persistedLockouts = loadPersistedLockouts()
+  for (const [key, lockedUntil] of persistedLockouts) {
+    entries.set(key, { attempts: [], lockedUntil })
+  }
 
   // Periodic cleanup to avoid unbounded map growth.
   const pruneTimer = setInterval(() => prune(), PRUNE_INTERVAL_MS);
@@ -183,12 +194,14 @@ export function createAuthRateLimiter(config?: RateLimitConfig): AuthRateLimiter
 
     if (entry.attempts.length >= maxAttempts) {
       entry.lockedUntil = now + lockoutMs;
+      persistLockout(key, entry.lockedUntil)
     }
   }
 
   function reset(rawIp: string | undefined, rawScope?: string): void {
     const { key } = resolveKey(rawIp, rawScope);
     entries.delete(key);
+    clearPersistedLockout(key)
   }
 
   function prune(): void {

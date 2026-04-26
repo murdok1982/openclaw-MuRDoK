@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import type { WebSocket } from "ws";
 import os from "node:os";
+import { logAuditEvent } from "../../../infra/audit-log.js";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import type { GatewayAuthResult, ResolvedGatewayAuth } from "../../auth.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../../server-methods/types.js";
@@ -393,6 +394,12 @@ export function attachGatewayWsMessageHandler(params: {
           sharedAuthResult?.ok === true &&
           (sharedAuthResult.method === "token" || sharedAuthResult.method === "password");
         const rejectUnauthorized = (failedAuth: GatewayAuthResult) => {
+          logAuditEvent({
+            type: failedAuth.rateLimited ? "rate_limited" : "auth_failure",
+            ts: Date.now(),
+            ip: clientIp ?? undefined,
+            reason: failedAuth.reason ?? undefined,
+          })
           setHandshakeState("failed");
           logWsControl.warn(
             `unauthorized conn=${connId} remote=${remoteAddr ?? "?"} client=${clientLabel} ${connectParams.client.mode} v${connectParams.client.version} reason=${failedAuth.reason ?? "unknown"}`,

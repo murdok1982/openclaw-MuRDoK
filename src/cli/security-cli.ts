@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { loadConfig } from "../config/config.js";
+import { rotateGatewayToken } from "../commands/gateway-rotate-token.js";
 import { defaultRuntime } from "../runtime.js";
 import { runSecurityAudit } from "../security/audit.js";
 import { fixSecurityFootguns } from "../security/fix.js";
@@ -154,5 +155,12 @@ export function registerSecurityCli(program: Command) {
       render("info");
 
       defaultRuntime.log(lines.join("\n"));
+    });
+
+  security
+    .command("rotate-token")
+    .description("Generate a new cryptographically random gateway auth token and save it to config")
+    .action(async () => {
+      await rotateGatewayToken()
     });
 }

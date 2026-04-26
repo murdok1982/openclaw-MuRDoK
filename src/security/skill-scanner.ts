@@ -102,6 +102,26 @@ const LINE_RULES: LineRule[] = [
     message: "WebSocket connection to non-standard port",
     pattern: /new\s+WebSocket\s*\(\s*["']wss?:\/\/[^"']*:(\d+)/,
   },
+  {
+    ruleId: "dynamic-exec-vm",
+    severity: "critical",
+    message: "VM module dynamic execution detected",
+    pattern: /\bvm\s*\.\s*(runInNewContext|runInContext|Script|compileFunction)\s*\(/,
+    requiresContext: /node:vm|['"]vm['"]/,
+  },
+  {
+    ruleId: "worker-thread-spawn",
+    severity: "warn",
+    message: "Worker thread spawn detected",
+    pattern: /new\s+Worker\s*\(/,
+    requiresContext: /worker_threads/,
+  },
+  {
+    ruleId: "dynamic-import-computed",
+    severity: "warn",
+    message: "Dynamic import with computed path detected",
+    pattern: /\bimport\s*\(\s*(?!['"`])[^)]+\)/,
+  },
 ];
 
 const STANDARD_PORTS = new Set([80, 443, 8080, 8443, 3000]);
@@ -178,6 +198,11 @@ export function scanSource(source: string, filePath: string): SkillScanFinding[]
         }
       }
 
+      const prevLine = i > 0 ? (lines[i - 1] ?? "") : ""
+      if (/openclaw-scan-ignore/.test(prevLine)) {
+        continue
+      }
+
       findings.push({
         ruleId: rule.ruleId,
         severity: rule.severity,
@@ -224,6 +249,15 @@ export function scanSource(source: string, filePath: string): SkillScanFinding[]
     if (matchLine === 0) {
       matchLine = 1;
       matchEvidence = source.slice(0, 120);
+    }
+
+    if (matchLine > 0) {
+      const matchLineContent = lines[matchLine - 1] ?? ""
+      const prevLineContent = matchLine > 1 ? (lines[matchLine - 2] ?? "") : ""
+      if (/openclaw-scan-ignore/.test(matchLineContent) || /openclaw-scan-ignore/.test(prevLineContent)) {
+        matchedSourceRules.add(ruleKey)
+        continue
+      }
     }
 
     findings.push({

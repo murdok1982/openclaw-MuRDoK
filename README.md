@@ -44,6 +44,37 @@
 
 ---
 
+## 🗺️ Mapa Conceptual y Arquitectura del Sistema (MuRDoK Fork)
+
+```mermaid
+graph TD
+    User([👤 Usuario / Desarrollador])
+    
+    subgraph Canales de Comunicación
+        WS[WhatsApp / Telegram]
+        DC[Discord / Slack]
+        SIG[Signal / Teams]
+    end
+
+    subgraph Gateway Central - MuRDoK Fork 🛡️
+        GW[OpenClaw Gateway<br/>Control Plane WS]
+        SH[Security Hardening<br/>Límites & Aislamiento]
+        GW --- SH
+    end
+
+    subgraph Agentes y Nodos Locales
+        PA[Pi Agent Runtime RPC]
+        MN[macOS / Linux CLI]
+        IN[iOS / Android Nodes]
+    end
+
+    User -->|Interactúa| Canales de Comunicación
+    Canales de Comunicación -->|Mensajes / Comandos| GW
+    GW -->|Enruta Sesiones| Agentes y Nodos Locales
+```
+
+---
+
 **OpenClaw** is a _personal AI assistant_ you run on your own devices.
 It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 

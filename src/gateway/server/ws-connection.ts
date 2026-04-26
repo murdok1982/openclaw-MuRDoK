@@ -5,6 +5,7 @@ import type { AuthRateLimiter } from "../auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "../auth.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../server-methods/types.js";
 import type { GatewayWsClient } from "./ws-types.js";
+import { logAuditEvent } from "../../infra/audit-log.js";
 import { resolveCanvasHostUrl } from "../../infra/canvas-host-url.js";
 import { removeRemoteNodeInfo } from "../../infra/skills-remote.js";
 import { listSystemPresence, upsertPresence } from "../../infra/system-presence.js";
@@ -64,6 +65,8 @@ export function attachGatewayWsConnectionHandler(params: {
   resolvedAuth: ResolvedGatewayAuth;
   /** Optional rate limiter for auth brute-force protection. */
   rateLimiter?: AuthRateLimiter;
+  /** Maximum number of simultaneous WebSocket connections. @default 500 */
+  maxConnections?: number;
   gatewayMethods: string[];
   events: string[];
   logGateway: SubsystemLogger;
@@ -100,6 +103,20 @@ export function attachGatewayWsConnectionHandler(params: {
   } = params;
 
   wss.on("connection", (socket, upgradeReq) => {
+    const maxConnections = params.maxConnections ?? 500
+    if (params.clients.size >= maxConnections) {
+      const remoteIp = (socket as WebSocket & { _socket?: { remoteAddress?: string } })._socket
+        ?.remoteAddress
+      logAuditEvent({
+        type: "ws_connection_rejected",
+        ts: Date.now(),
+        ip: remoteIp,
+        reason: "connection_limit_reached",
+      })
+      socket.close(1013, "Gateway connection limit reached")
+      return
+    }
+
     let client: GatewayWsClient | null = null;
     let closed = false;
     const openedAt = Date.now();

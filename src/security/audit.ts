@@ -17,6 +17,7 @@ import {
   collectHooksHardeningFindings,
   collectIncludeFilePermFindings,
   collectInstalledSkillsCodeSafetyFindings,
+  collectMemoryDbFindings,
   collectMinimalProfileOverrideFindings,
   collectModelHygieneFindings,
   collectNodeDenyCommandPatternFindings,
@@ -242,6 +243,14 @@ async function collectFilesystemFindings(params: {
   return findings;
 }
 
+function shannonEntropy(s: string): number {
+  const freq = new Map<string, number>()
+  for (const c of s) freq.set(c, (freq.get(c) ?? 0) + 1)
+  return -[...freq.values()]
+    .map((n) => n / s.length)
+    .reduce((sum, p) => sum + p * Math.log2(p), 0)
+}
+
 function collectGatewayConfigFindings(
   cfg: OpenClawConfig,
   env: NodeJS.ProcessEnv,
@@ -373,6 +382,19 @@ function collectGatewayConfigFindings(
       title: "Gateway token looks short",
       detail: `gateway auth token is ${token.length} chars; prefer a long random token.`,
     });
+  }
+
+  if (auth.mode === "token" && token && token.length >= 24) {
+    const entropy = shannonEntropy(token)
+    if (entropy < 3.0) {
+      findings.push({
+        checkId: "gateway.token_low_entropy",
+        severity: "warn",
+        title: "Gateway token has low entropy",
+        detail: `Gateway auth token has entropy ≈ ${entropy.toFixed(1)} bits/char; use a cryptographically random token.`,
+        remediation: `Generate a strong token: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`,
+      })
+    }
   }
 
   if (auth.mode === "trusted-proxy") {
@@ -629,6 +651,7 @@ export async function runSecurityAudit(opts: SecurityAuditOptions): Promise<Secu
   findings.push(...collectModelHygieneFindings(cfg));
   findings.push(...collectSmallModelRiskFindings({ cfg, env }));
   findings.push(...collectExposureMatrixFindings(cfg));
+  findings.push(...collectMemoryDbFindings(cfg, stateDir));
 
   const configSnapshot =
     opts.includeFilesystem !== false
